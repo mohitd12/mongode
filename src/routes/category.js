@@ -2,8 +2,11 @@ const express = require('express');
 
 const router = express.Router();
 
-router.get('/', (req, res, next) => {
-	res.send('Ok');
-});
+const { findCategories, createCategory, updateCategory, removeCategory } = require('../controllers/Category');
+
+router.get('/', findCategories);
+router.post('/', createCategory);
+router.put('/:categoryId', updateCategory);
+router.delete('/:categoryId', removeCategory);
 
 module.exports = router;

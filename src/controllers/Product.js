@@ -2,20 +2,29 @@ const Joi = require('joi');
 const mongoose = require('mongoose');
 
 // model
-const Category = require('../models/Category');
+const Product = require('../models/Product');
 
-// body validation schema for Category
+// body validation schema for Product
 const bodyValidationSchema = Joi.object({
 	name: Joi.string().required(),
-	description: Joi.string().required().allow(''),
-	image_url: Joi.string().uri().required().allow('')
+	sku: Joi.string().regex(/^[a-zA-Z0-9]*$/, 'alphanumeric').required(),
+	price: Joi.number().min(0).allow(0).required()
 });
 
-// route params validation schema for Category
+/**
+ * body validation schema for Product
+ * without SKU field
+ */
+const bodyValidationSchema1 = Joi.object({
+	name: Joi.string().required(),
+	price: Joi.number().min(0).allow(0).required()
+});
+
+// route params validation schema for Product
 const paramsValidationSchema = Joi.object({
-	categoryId: Joi.string().custom((val, helper) => {
+	productId: Joi.string().custom((val, helper) => {
 		if (!mongoose.Types.ObjectId.isValid(val)) {
-			return helper.message('"categoryId" must be a valid objectId');
+			return helper.message('"productId" must be a valid objectId');
 		}
 		return true;
 	})
@@ -29,15 +38,15 @@ const validateOptions = {
 };
 
 /**
- * Category controller
+ * Product controller
  */
-let categoryController = {};
+let productController = {};
 
 /**
- * Find all categories 
+ * Find all products
  */
-categoryController.findCategories = async (req, res, next) => {
-	Category.find({}, (err, doc) => {
+productController.findProducts = async (req, res, next) => {
+	Product.find({}, (err, doc) => {
 		if (err) return next(err);
 
 		if (doc.length < 1) return res.status(200).json({ message: 'No data found', data: doc });
@@ -47,27 +56,25 @@ categoryController.findCategories = async (req, res, next) => {
 };
 
 /**
- * Create category
+ * Create product
  */
-categoryController.createCategory = async (req, res, next) => {
+productController.createProduct = async (req, res, next) => {
 	// validate request body against schema
 	const { error } = bodyValidationSchema.validate(req.body, validateOptions);
 
-	if (error) {
+	if (error)
 		return res.status(400).json({ message: `Validation error: ${error.details.map((err) => err.message).join(', ')}` });
-	}
 
-	Category.create(req.body, (err, doc) => {
+	Product.create(req.body, (err, doc) => {
 		if (err) return next(err);
-
-		res.status(200).json({ message: 'Category created', data: doc });
+		res.status(200).json({ message: 'Product created', data: doc });
 	});
 };
 
 /**
- * Update category by categoryId
+ * Update product
  */
-categoryController.updateCategory = async (req, res, next) => {
+productController.updateProduct = async (req, res, next) => {
 	// validate request params against schema
 	const paramValidationRes = paramsValidationSchema.validate(req.params, validateOptions);
 
@@ -78,27 +85,26 @@ categoryController.updateCategory = async (req, res, next) => {
 	}
 
 	// validate request body against schema
-	const bodyValidationRes = bodyValidationSchema.validate(req.body, validateOptions);
+	const bodyValidationRes = bodyValidationSchema1.validate(req.body, validateOptions);
 
-	if (bodyValidationRes.error) {
+	if (bodyValidationRes.error)
 		return res
 			.status(400)
 			.json({ message: `Validation error: ${bodyValidationRes.error.details.map((err) => err.message).join(', ')}` });
-	}
 
-	Category.findByIdAndUpdate(req.params.categoryId, req.body, { new: true }, (err, doc) => {
+	Product.findByIdAndUpdate(req.params.productId, req.body, { new: true }, (err, doc) => {
 		if (err) return next(err);
 
-		if (!doc) return res.status(200).json({ message: `No category exist with Id: ${req.params.categoryId}` });
+		if (!doc) return res.status(200).json({ message: `No product exist with Id: ${req.params.productId}` });
 
-		res.status(200).json({ message: 'Category updated', data: doc });
+		res.status(200).json({ message: 'Product updated', data: doc });
 	});
 };
 
 /**
- * Delete category by categoryId
+ * Delete product
  */
-categoryController.removeCategory = async (req, res, next) => {
+productController.deleteProduct = async (req, res, next) => {
 	// validate request params against schema
 	const paramValidationRes = paramsValidationSchema.validate(req.params, validateOptions);
 
@@ -108,13 +114,13 @@ categoryController.removeCategory = async (req, res, next) => {
 			.json({ message: `Validation error: ${paramValidationRes.error.details.map((err) => err.message).join(', ')}` });
 	}
 
-	Category.findByIdAndRemove(req.params.categoryId, (err, doc) => {
+	Product.findByIdAndRemove(req.params.productId, (err, doc) => {
 		if (err) return next(err);
 
-		if (!doc) return res.status(200).json({ message: `No category exist with Id: ${req.params.categoryId}`, data: {} });
+		if (!doc) return res.status(200).json({ message: `No product exist with Id: ${req.params.productId}` });
 
-		res.status(200).json({ message: 'Category removed', data: doc });
+		res.status(200).json({ message: 'Product removed', data: doc });
 	});
 };
 
-module.exports = categoryController;
+module.exports = productController;

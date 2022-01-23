@@ -2,8 +2,16 @@ const express = require('express');
 
 const router = express.Router();
 
-router.get('/', (req, res) => {
-	res.send('Product_category');
-});
+const { findAllData, addCategoryToProduct } = require('../controllers/ProductCategory');
+
+/**
+ * List all product with categories
+ */
+router.get('/', findAllData);
+
+/**
+ * Add category to product
+ */
+router.post('/', addCategoryToProduct);
 
 module.exports = router;

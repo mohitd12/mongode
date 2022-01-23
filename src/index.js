@@ -46,8 +46,9 @@ app.use('/api', routes);
 app.use((err, req, res, next) => {
 	if (err) {
 		res.status(500).json({ message: err });
+		throw err;
 	} else {
-		res.status(500).json({ message: 'Internal server error' });
+		res.status(500).json({ message: 'Unknown server error' });
 	}
 });
 

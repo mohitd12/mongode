@@ -1,5 +1,6 @@
 const Joi = require('joi');
 const mongoose = require('mongoose');
+const _ = require('lodash');
 
 // model
 const Product = require('../models/Product');
@@ -16,8 +17,8 @@ const bodyValidationSchema = Joi.object({
  * without SKU field
  */
 const bodyValidationSchema1 = Joi.object({
-	name: Joi.string().required(),
-	price: Joi.number().min(0).allow(0).required()
+	name: Joi.string(),
+	price: Joi.number().min(0).allow(0)
 });
 
 // route params validation schema for Product
@@ -28,6 +29,13 @@ const paramsValidationSchema = Joi.object({
 		}
 		return true;
 	})
+});
+
+// query params validation schema for Product
+const queryValidationSchema = Joi.object({
+	page: Joi.number().integer().min(0).required(),
+	limit: Joi.number().integer().min(0).required(),
+	sortBy: Joi.string()
 });
 
 // validation options
@@ -44,15 +52,43 @@ let productController = {};
 
 /**
  * Find all products
+ * with basic filters
  */
 productController.findProducts = async (req, res, next) => {
-	Product.find({}, (err, doc) => {
-		if (err) return next(err);
+	// validate request query against schema
+	const { error } = queryValidationSchema.validate(req.query, validateOptions);
 
-		if (doc.length < 1) return res.status(200).json({ message: 'No data found', data: doc });
+	if (error) {
+		return res.status(400).json({ message: `Validation error: ${error.details.map((err) => err.message).join(', ')}` });
+	}
 
-		res.status(200).json({ message: 'Data found', data: doc });
-	});
+	let pageOptions = {},
+		sortOptions = {};
+
+	if (_.has(req.query, 'page')) {
+		pageOptions['page'] = req.query.page;
+	}
+
+	if (_.has(req.query, 'limit')) {
+		pageOptions['limit'] = req.query.limit;
+	}
+
+	if (_.has(req.query, 'sortBy')) {
+		const sortValue = req.query.sortBy.split(':');
+		sortOptions[sortValue[0]] = sortValue[1] === 'desc' ? -1 : 1;
+	}
+
+	Product.find({})
+		.limit(pageOptions.limit)
+		.skip(pageOptions.limit * pageOptions.page)
+		.sort(sortOptions)
+		.exec((err, doc) => {
+			if (err) return next(err);
+
+			if (doc.length < 1) return res.status(200).json({ message: 'No data found', data: doc });
+
+			res.status(200).json({ message: 'Data found', data: doc });
+		});
 };
 
 /**
@@ -87,10 +123,11 @@ productController.updateProduct = async (req, res, next) => {
 	// validate request body against schema
 	const bodyValidationRes = bodyValidationSchema1.validate(req.body, validateOptions);
 
-	if (bodyValidationRes.error)
+	if (bodyValidationRes.error) {
 		return res
 			.status(400)
 			.json({ message: `Validation error: ${bodyValidationRes.error.details.map((err) => err.message).join(', ')}` });
+	}
 
 	Product.findByIdAndUpdate(req.params.productId, req.body, { new: true }, (err, doc) => {
 		if (err) return next(err);

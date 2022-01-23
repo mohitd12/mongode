@@ -111,7 +111,7 @@ categoryController.removeCategory = async (req, res, next) => {
 	Category.findByIdAndRemove(req.params.categoryId, (err, doc) => {
 		if (err) return next(err);
 
-		if (!doc) return res.status(200).json({ message: `No category exist with Id: ${req.params.categoryId}`, data: {} });
+		if (!doc) return res.status(200).json({ message: `No category exist with Id: ${req.params.categoryId}` });
 
 		res.status(200).json({ message: 'Category removed', data: doc });
 	});
